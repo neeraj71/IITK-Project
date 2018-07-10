@@ -1,0 +1,56 @@
+library(mvtnorm)
+set.seed(20)
+n=100
+class <- rmvnorm(n, c(0,0), matrix(c(1,0,0,1), nrow = 2, ncol = 2, byrow = TRUE))
+
+y <- 4*(class[,1])^2 
+#y <- 5 + 2*(class[,1]) + 4*(class[,1])^2 
+#+ 60*class[,1]
+noise <- rnorm(n, mean=0, sd=0.5)
+noisy.y <- y + noise
+#plot(class[,1],y)
+
+G=cbind(noisy.y,(class[,1])) #,class[,2]
+#pairs(G)
+#G[n,]=rep(1,dim(G)[2])
+G[n,]=c(-25,0)
+plot(G[,2],G[,1])
+
+sigma=0.25
+K=matrix(0, nrow = n, ncol = n)
+for(i in c(1:n)){
+  for(j in c(1:n)){
+    K[i,j]=exp(-sum((G[i,]-G[j,])^2)/sigma^2)
+  }
+}
+
+W=T=D=Z=matrix(0, nrow = n, ncol = 1)
+for(N in c(1:n)){
+
+for(i in c(1:n)){
+  T[i]=exp(-sum((G[i,]-G[N,])^2)/sigma^2)
+  D[i]=sqrt(1+1-2*T[i])
+  if(D[i]==0){Z[i]=0}
+  else{Z[i]=1/D[i]}
+}
+
+P=matrix(0, nrow = n, ncol = n)
+for(i in c(1:n)){
+  for(j in c(1:n)){
+    P[i,j]=1+K[i,j]-T[i]-T[j]
+  }
+}
+
+W[N]=1-1/(n)*sqrt(t(Z)%*%P%*%Z)
+}
+W[n]=0
+
+G1=cbind(noisy.y,(class[,1]),(class[,1])^2)
+G1[n,]=c(-25,0,0)
+G2=data.frame(G1)
+fit1=lm(noisy.y ~ ., data=G2)
+fit2=lm(noisy.y ~ ., data=G2, weights=W)
+print(fit1$coefficients)
+print(fit2$coefficients)
+print(W[n])
+
